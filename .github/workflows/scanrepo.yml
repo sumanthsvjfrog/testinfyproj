@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-node@v3
 
     
-    #  - uses: jfrog/frogbot@v2
+      - uses: jfrog/frogbot@v2
      #   with:
       #    oidc-provider-name: gitoidc
         #  oidc-audience: frogoidc
