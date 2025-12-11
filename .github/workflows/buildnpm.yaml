@@ -1,0 +1,76 @@
+name: "JFrog-GitHub NPM Publish OIDC Integration"
+on: workflow_dispatch
+
+
+# This is required as per below link
+# https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#adding-permissions-settings
+permissions:
+  contents: read # Allow reading repository content
+  packages: write # Allow writing to GitHub Packages
+  id-token: write # Required for OIDC authentication with JFrog
+
+jobs:
+  build:
+     runs-on: ubuntu-latest
+     env:
+       JFROG_CLI_LOG_LEVEL: DEBUG
+       MODULE_NAME: 'infynpmmodule'
+       PLATFORM_REPO: 'Infosys-npm-dev-virtual'
+       BUILD_NAME: "infynpm-build"
+       BUILD_NUMBER: "${{github.run_number}}"
+       
+    # defaults:
+    #  run:
+    #    working-directory: ./package
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v3
+              
+       - name: Setup Node npm
+         uses: actions/setup-node@v3
+   
+       - name: Setup JFrog CLI
+         uses: jfrog/setup-jfrog-cli@v4
+         env:  
+           JF_URL: https://${{ vars.JF_URL }}
+           #JF_USER: ${{ vars.JF_USER }}
+           #JF_ACCESS_TOKEN: ${{ vars.JF_ACCESS_TOKEN }}                  
+         with:
+           oidc-provider-name: destgithub
+           
+       - name: Check connectivity
+         run: |
+           jf config show
+           jf rt ping
+
+       - name: Set CLI Config
+         run: | 
+           jf npm-config --repo-resolve=${{ vars.PLATFORM_REPO }} --repo-deploy=${{ vars.PLATFORM_REPO }}   
+
+       - name: Run Audit scan for the git workspace
+         run: jf audit .
+           
+       - name: Install Dependencies
+         run: |
+           npm cache clean --force
+           jf npm install --build-name=${{ vars.BUILD_NAME }} --build-number=${{ github.run_number }}
+           
+    #   - name: Run tests
+     #   run: npm test
+         
+       - name: Publish
+         run: jf npm publish --build-name=${{ vars.BUILD_NAME }} --build-number=${{ github.run_number }}
+         
+       - name: Publish Build info With JFrog CLI
+         run: |
+          # Collect environment variables for the build
+          jf rt build-collect-env ${{ vars.BUILD_NAME }} ${{ github.run_number }}
+          
+          # Collect VCS details from git and add them to the build 
+          jf rt build-add-git ${{ vars.BUILD_NAME }} ${{ github.run_number }} 
+          
+          # Publish build info 
+          jf rt build-publish ${{ vars.BUILD_NAME }} ${{ github.run_number }}
+
+       - name: Run build scan
+         run: jf build-scan ${{ vars.BUILD_NAME }}  ${{ github.run_number }}
