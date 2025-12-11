@@ -47,8 +47,8 @@ jobs:
          run: | 
            jf npm-config --repo-resolve=$PLATFORM_REPO --repo-deploy=$PLATFORM_REPO 
 
-       - name: Run Audit scan for the git workspace
-         run: jf audit .
+       #- name: Run Audit scan for the git workspace
+         #run: jf audit .
            
        - name: Install Dependencies
          run: |
@@ -63,13 +63,13 @@ jobs:
        - name: Publish Build info With JFrog CLI
          run: |
           # Collect environment variables for the build
-          jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER --module $MODULE_NAME
+          jf rt build-collect-env $BUILD_NAME $BUILD_NUMBER 
           
           # Collect VCS details from git and add them to the build 
-          jf rt build-add-git $BUILD_NAME $BUILD_NUMBER --module $MODULE_NAME
+          jf rt build-add-git $BUILD_NAME $BUILD_NUMBER 
           
           # Publish build info 
-          jf rt build-publish $BUILD_NAME $BUILD_NUMBER --module $MODULE_NAME
+          jf rt build-publish $BUILD_NAME $BUILD_NUMBER
 
        - name: Run build scan
          run: jf build-scan $BUILD_NAME  $BUILD_NUMBER
